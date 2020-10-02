@@ -13,12 +13,7 @@ module.exports = {
       propFilter: (prop) => (prop.parent ? !/node_modules/.test(prop.parent.fileName) : true),
     },
   },
-  webpackFinal: async (config) => {
-    config.module.rules.push({
-      test: /\.css$/,
-      use: ["style-loader", "css-loader"],
-    });
-
+  webpackFinal: async (config, { configType }) => {
     config.module.rules.push({
       test: /\.(ts|tsx)$/,
       loader: require.resolve("babel-loader"),

@@ -1,4 +1,9 @@
 /* Example Styles for React Tags*/
+ul {
+    margin: 0;
+    padding: 0;
+}
+
 div.ReactTags__tags {
     position: relative;
 }

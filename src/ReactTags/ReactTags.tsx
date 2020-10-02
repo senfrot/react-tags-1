@@ -3,6 +3,7 @@ import uniq from 'lodash/uniq';
 import cs from 'classnames';
 import Suggestions from './Suggestions';
 import Tag from './Tag';
+import '../reactTags.css';
 
 import { buildRegExpFromDelimiters } from './utils';
 

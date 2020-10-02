@@ -81,7 +81,6 @@ const Suggestions: React.FC<SuggestionsProps> = ({
     if (typeof renderSuggestion === 'function') {
       return renderSuggestion(item, queryText);
     }
-    console.log('render');
     return <span dangerouslySetInnerHTML={markIt(item, queryText)} />;
   };
 
@@ -99,8 +98,6 @@ const Suggestions: React.FC<SuggestionsProps> = ({
       </li>
     );
   });
-
-  console.log(suggestionsList);
 
   // use the override, if provided
   const willRenderSuggestions =
