@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
-import ReactTags from './index';
+import { ReactTags } from './index';
 
 export default {
   title: 'React Tags',
 };
 
 export const Primary = (): JSX.Element => {
-  const [tags, setTags] = useState([]);
+  const [tags, setTags] = useState([
+    { id: 'USA', text: 'USA' },
+    { id: 'Germany', text: 'Germany' },
+  ]);
 
   const suggestions = [
     { id: 'USA', text: 'USA' },
@@ -28,7 +31,7 @@ export const Primary = (): JSX.Element => {
   return (
     <ReactTags
       tags={tags}
-      availableSuggestions={suggestions}
+      suggestionsList={suggestions}
       handleAddition={handleAddition}
       handleDelete={handleDelete}
     />

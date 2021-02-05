@@ -1,9 +1,12 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { DragDropContext } from 'react-dnd';
+import HTML5Backend from 'react-dnd-html5-backend';
+import isEqual from 'lodash/isEqual';
 import uniq from 'lodash/uniq';
-import cs from 'classnames';
+import ClassNames from 'classnames';
 import Suggestions from './Suggestions';
 import Tag from './Tag';
-import '../reactTags.css';
+import './reactTags.css';
 
 import { buildRegExpFromDelimiters } from './utils';
 
@@ -16,22 +19,27 @@ import {
   INPUT_FIELD_POSITIONS,
 } from './constants';
 
-interface ReactTagsProps {
+interface Props {
   placeholder?: string;
   labelField?: string;
-  availableSuggestions?: { id: string; text: string }[];
+  suggestionsList: { id: string; [key: string]: string }[];
   delimiters?: number[];
   autofocus?: boolean;
   inline?: boolean; // TODO: Remove in v7.x.x
-  // inputFieldPosition: INPUT_FIELD_POSITIONS.INLINE | INPUT_FIELD_POSITIONS.TOP | INPUT_FIELD_POSITIONS.BOTTOM;
+  // inputFieldPosition: oneOf([
+  //   INPUT_FIELD_POSITIONS.INLINE;
+  //   INPUT_FIELD_POSITIONS.TOP;
+  //   INPUT_FIELD_POSITIONS.BOTTOM;
+  // ]);
   inputFieldPosition?: any;
   handleDelete?: (i: any, e: any) => void;
   handleAddition?: (tag: any) => void;
-  handleDrag?: () => void;
+  handleDrag?: (tag: any, x: any, y: any) => void;
   handleFilterSuggestions?: (query: any, suggestions: any) => void;
   handleTagClick?: (i: any, e: any) => void;
   allowDeleteFromEmptyInput?: boolean;
   allowAdditionFromPaste?: boolean;
+  allowDragDrop?: boolean;
   resetInputOnDelete?: boolean;
   handleInputChange?: (e: any) => void;
   handleInputFocus?: (value: any) => void;
@@ -52,76 +60,56 @@ interface ReactTagsProps {
     id: string;
     key?: string;
     className?: string;
+    [key: string]: string;
   }[];
   allowUnique?: boolean;
   renderSuggestion?: (item: any, query: any) => JSX.Element;
 }
 
-const ReactTags: React.FC<ReactTagsProps> = ({
+const ReactTags: React.FC<Props> = ({
   placeholder = DEFAULT_PLACEHOLDER,
   labelField = DEFAULT_LABEL_FIELD,
-  availableSuggestions = [],
+  suggestionsList = [],
   delimiters = [KEYS.ENTER, KEYS.TAB],
   autofocus = true,
   inline = true,
-  maxLength,
-  minQueryLength,
   inputFieldPosition = INPUT_FIELD_POSITIONS.INLINE,
   handleDelete,
-  handleTagClick,
   handleAddition,
-  handleInputFocus,
-  handleInputBlur,
-  handleInputChange,
+  handleDrag,
   handleFilterSuggestions,
-  renderSuggestion,
-  shouldRenderSuggestions,
+  handleTagClick,
   allowDeleteFromEmptyInput = true,
   allowAdditionFromPaste = true,
+  allowDragDrop = true,
   resetInputOnDelete = true,
+  handleInputChange,
+  handleInputFocus,
+  handleInputBlur,
+  minQueryLength,
+  shouldRenderSuggestions,
+  removeComponent,
   autocomplete = false,
   readOnly = false,
-  allowUnique = true,
-  inputValue,
-  removeComponent,
-  classNames = {},
-  id,
+  classNames,
   name,
+  id,
+  maxLength,
+  inputValue,
   tags = [],
+  allowUnique = true,
+  renderSuggestion,
+  ...rest
 }) => {
+  console.log(rest);
   const textInput = useRef(null);
   const [state, setState] = useState({
-    suggestions: availableSuggestions,
+    suggestions: suggestionsList,
     query: '',
     isFocused: false,
     selectedIndex: -1,
     selectionMode: false,
   });
-
-  const resetAndFocusInput = () => {
-    setState((prevState) => ({
-      ...prevState,
-      query: '',
-    }));
-    if (textInput) {
-      textInput.current.value = '';
-      textInput.current.focus();
-    }
-  };
-
-  useEffect(() => {
-    if (!inline) {
-      // eslint-disable-next-line no-console
-      console.warn(
-        '[DEPRECATION] The inline attribute is deprecated. Will be removed in future. Please use inputFieldPosition instead'
-      );
-    }
-
-    if (autofocus && !readOnly) {
-      resetAndFocusInput();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const getQueryIndex = (query, item) => {
     return item[labelField].toLowerCase().indexOf(query.toLowerCase());
@@ -141,27 +129,26 @@ const ReactTags: React.FC<ReactTagsProps> = ({
     return exactSuggestions.concat(partialSuggestions);
   };
 
+  const resetAndFocusInput = () => {
+    setState((prevState) => ({ ...prevState, query: '' }));
+    if (textInput) {
+      textInput.current.value = '';
+      textInput.current.focus();
+    }
+  };
+
   useEffect(() => {
-    // if (!isEqual(prevProps.suggestions, this.props.suggestions)) {
-    //   this.updateSuggestions();
-    // }
-    const newSuggestions = filteredSuggestions(
-      state.query,
-      availableSuggestions
-    );
+    if (!inline) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[DEPRECATION] The inline attribute is deprecated. Will be removed in future. Please use inputFieldPosition instead'
+      );
+    }
 
-    // console.log(availableSuggestions, newSuggestions, state.query);
-
-    setState((prevState) => ({
-      ...prevState,
-      suggestions: newSuggestions,
-      selectedIndex:
-        prevState.selectedIndex >= newSuggestions.length
-          ? newSuggestions.length - 1
-          : prevState.selectedIndex,
-    }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.query]);
+    if (autofocus && !readOnly) {
+      resetAndFocusInput();
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const onDelete = (i, e) => {
     if (handleDelete) {
@@ -169,9 +156,7 @@ const ReactTags: React.FC<ReactTagsProps> = ({
     }
     if (!resetInputOnDelete) {
       // textInput && textInput.current.focus();
-      if (textInput) {
-        textInput.current.focus();
-      }
+      if (textInput) textInput.current.focus();
     } else {
       resetAndFocusInput();
     }
@@ -183,15 +168,32 @@ const ReactTags: React.FC<ReactTagsProps> = ({
       handleTagClick(i, e);
     }
     if (!resetInputOnDelete) {
-      // TODO: compare textInput with previous ver
-      // textInput && textInput.current.focus();
-      if (textInput) {
-        textInput.current.focus();
-      }
+      if (textInput) textInput.current.focus();
     } else {
       resetAndFocusInput();
     }
   };
+
+  const updateSuggestions = () => {
+    const { query, selectedIndex } = state;
+    const suggestions = filteredSuggestions(query, suggestionsList);
+
+    setState((prevState) => ({
+      ...prevState,
+      suggestions,
+      selectedIndex:
+        selectedIndex >= suggestions.length
+          ? suggestions.length - 1
+          : selectedIndex,
+    }));
+  };
+
+  useEffect(() => {
+    // if (!isEqual(prevProps.suggestions, this.props.suggestions)) {
+    //   this.updateSuggestions();
+    // }
+    updateSuggestions();
+  }, [state.query]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleChange = (e) => {
     if (handleInputChange) {
@@ -199,7 +201,6 @@ const ReactTags: React.FC<ReactTagsProps> = ({
     }
 
     const query = e.target.value.trim();
-
     setState((prevState) => ({ ...prevState, query }));
   };
 
@@ -223,22 +224,22 @@ const ReactTags: React.FC<ReactTagsProps> = ({
   };
 
   const addTag = (tag) => {
+    let newTag = tag;
+    // const { tags, labelField, allowUnique } = this.props;
     if (!tag.id || !tag[labelField]) {
       return;
     }
+    console.log(newTag);
     const existingKeys = tags.map((tagItem) => tagItem.id.toLowerCase());
 
     // Return if tag has been already added
     if (allowUnique && existingKeys.indexOf(tag.id.toLowerCase()) >= 0) {
       return;
     }
-
-    let newTag = tag;
-
     if (autocomplete) {
       const possibleMatches = filteredSuggestions(
         tag[labelField],
-        availableSuggestions
+        suggestionsList
       );
 
       if (
@@ -291,11 +292,10 @@ const ReactTags: React.FC<ReactTagsProps> = ({
           ? suggestions[selectedIndex]
           : { id: query, [labelField]: query };
 
-      // TODO: check this statement (always true?)
+      // TODO: always true?
       // if (selectedQuery !== '') {
-      //   addTag(selectedQuery);
-      // }
       addTag(selectedQuery);
+      // }
     }
 
     // when backspace key is pressed and query is blank, delete tag
@@ -304,7 +304,7 @@ const ReactTags: React.FC<ReactTagsProps> = ({
       query === '' &&
       allowDeleteFromEmptyInput
     ) {
-      onDelete(tags.length - 1, e); // TODO: potential error
+      onDelete(tags.length - 1, e);
     }
 
     // up arrow
@@ -344,17 +344,17 @@ const ReactTags: React.FC<ReactTagsProps> = ({
     const { clipboardData } = e;
     const clipboardText = clipboardData.getData('text');
 
-    const maximumLength = maxLength || clipboardText.length;
+    const maximumLength = clipboardText.length || maxLength;
 
     const maxTextLength = Math.min(maximumLength, clipboardText.length);
     const pastedText = clipboardData.getData('text').substr(0, maxTextLength);
 
     // Used to determine how the pasted content is split.
     const delimiterRegExp = buildRegExpFromDelimiters(delimiters);
-    const splittedTags = pastedText.split(delimiterRegExp);
+    const tagsList = pastedText.split(delimiterRegExp);
 
     // Only add unique tags
-    uniq(splittedTags).forEach((tag) => addTag({ id: tag, [labelField]: tag }));
+    uniq(tagsList).forEach((tag) => addTag({ id: tag, [labelField]: tag }));
   };
 
   const handleSuggestionClick = (i) => {
@@ -369,18 +369,31 @@ const ReactTags: React.FC<ReactTagsProps> = ({
     }));
   };
 
+  const moveTag = (dragIndex, hoverIndex) => {
+    // locate tags
+    const dragTag = tags[dragIndex];
+
+    // call handler with the index of the dragged tag
+    // and the tag that is hovered
+    handleDrag(dragTag, dragIndex, hoverIndex);
+  };
+
   const getTagItems = () => {
+    const movableTag = allowDragDrop ? moveTag : null;
     return tags.map((tag, index) => {
       return (
         <Tag
           key={tag.key || tag.id}
+          index={index}
           tag={tag}
           labelField={labelField}
-          onDelete={(evt) => onDelete(index, evt)}
-          onTagClicked={(evt) => onTagClick(index, evt)}
-          readOnly={readOnly}
+          onDelete={(e) => onDelete(index, e)}
+          moveTag={movableTag}
           removeComponent={removeComponent}
+          onTagClicked={(e) => onTagClick(index, e)}
+          readOnly={readOnly}
           classNames={{ ...DEFAULT_CLASSNAMES, ...classNames }}
+          allowDragDrop={allowDragDrop}
         />
       );
     });
@@ -390,8 +403,7 @@ const ReactTags: React.FC<ReactTagsProps> = ({
   const classes = { ...DEFAULT_CLASSNAMES, ...classNames };
 
   // get the suggestions for the given query
-  const query = state.query.trim();
-  const { selectedIndex, suggestions } = state;
+  const { query, selectedIndex, suggestions, isFocused } = state;
 
   const position = !inline ? INPUT_FIELD_POSITIONS.BOTTOM : inputFieldPosition;
 
@@ -408,14 +420,14 @@ const ReactTags: React.FC<ReactTagsProps> = ({
         onChange={handleChange}
         onKeyDown={handleKeyDown}
         onPaste={handlePaste}
-        name={name || 'tags'}
-        id={id || 'react-tags-input'}
+        name={name}
+        id={id}
         maxLength={maxLength}
         value={inputValue}
       />
 
       <Suggestions
-        query={query}
+        query={query.trim()}
         suggestions={suggestions}
         labelField={labelField}
         selectedIndex={selectedIndex}
@@ -423,7 +435,7 @@ const ReactTags: React.FC<ReactTagsProps> = ({
         handleHover={handleSuggestionHover}
         minQueryLength={minQueryLength}
         shouldRenderSuggestions={shouldRenderSuggestions}
-        isFocused={state.isFocused}
+        isFocused={isFocused}
         classNames={classes}
         renderSuggestion={renderSuggestion}
       />
@@ -431,9 +443,10 @@ const ReactTags: React.FC<ReactTagsProps> = ({
   ) : null;
 
   return (
-    <div className={cs(classes.tags, 'react-tags-wrapper')}>
+    <div className={ClassNames(classes.tags, 'react-tags-wrapper')}>
       {position === INPUT_FIELD_POSITIONS.TOP && tagInput}
       <div className={classes.selected}>
+        {console.log(tagItems)}
         {tagItems}
         {position === INPUT_FIELD_POSITIONS.INLINE && tagInput}
       </div>
@@ -442,4 +455,6 @@ const ReactTags: React.FC<ReactTagsProps> = ({
   );
 };
 
-export default ReactTags;
+const ReactTagsDnD = DragDropContext(HTML5Backend)(ReactTags);
+
+export { ReactTags, ReactTagsDnD, KEYS };

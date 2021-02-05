@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, memo } from 'react';
-import isEqual from 'lodash/isEqual';
+import React, { useEffect, useRef } from 'react';
+// import isEqual from 'lodash/isEqual';
 import escape from 'lodash/escape';
 
 const maybeScrollSuggestionIntoView = (suggestionEl, suggestionsContainer) => {
@@ -18,12 +18,12 @@ const maybeScrollSuggestionIntoView = (suggestionEl, suggestionsContainer) => {
   }
 };
 
-interface SuggestionsProps {
+interface Props {
   query: string;
   selectedIndex: number;
   suggestions: any[];
-  handleClick: (i: any) => void;
-  handleHover: (i: any) => void;
+  handleClick: (e: any) => void;
+  handleHover: (e: any) => void;
   minQueryLength?: number;
   shouldRenderSuggestions?: () => void;
   isFocused: boolean;
@@ -34,7 +34,7 @@ interface SuggestionsProps {
   renderSuggestion?: (item: any, query: any) => JSX.Element;
 }
 
-const Suggestions: React.FC<SuggestionsProps> = ({
+const Suggestions: React.FC<Props> = ({
   query,
   selectedIndex,
   suggestions,
@@ -47,6 +47,18 @@ const Suggestions: React.FC<SuggestionsProps> = ({
   labelField,
   renderSuggestion,
 }) => {
+  // shouldComponentUpdate(nextProps) {
+  //   const { props } = this;
+  //   const shouldRenderSuggestions =
+  //     props.shouldRenderSuggestions || this.shouldRenderSuggestions;
+  //   return (
+  //     props.isFocused !== nextProps.isFocused ||
+  //     !isEqual(props.suggestions, nextProps.suggestions) ||
+  //     shouldRenderSuggestions(nextProps.query) ||
+  //     shouldRenderSuggestions(nextProps.query) !==
+  //       shouldRenderSuggestions(props.query)
+  //   );
+  // }
   const suggestionsContainer = useRef(null);
 
   useEffect(() => {
@@ -112,21 +124,5 @@ const Suggestions: React.FC<SuggestionsProps> = ({
     </div>
   );
 };
-
-// export default memo(Suggestions, (prevProps, nextProps) => {
-//   // console.log('suggestions re-render', prevProps, nextProps);
-//   const handleShouldRenderSuggestions = (query) =>
-//     query.length >= nextProps.minQueryLength && nextProps.isFocused;
-
-//   const willRenderSuggestions =
-//     prevProps.shouldRenderSuggestions || handleShouldRenderSuggestions;
-//   return (
-//     prevProps.isFocused === nextProps.isFocused ||
-//     isEqual(prevProps.suggestions, nextProps.suggestions) ||
-//     willRenderSuggestions(nextProps.query) ||
-//     willRenderSuggestions(nextProps.query) ===
-//       willRenderSuggestions(prevProps.query)
-//   );
-// });
 
 export default Suggestions;

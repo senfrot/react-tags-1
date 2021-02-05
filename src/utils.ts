@@ -11,7 +11,7 @@ export function buildRegExpFromDelimiters(delimiters) {
     .map((delimiter) => {
       // See: http://stackoverflow.com/a/34711175/1463681
       const chrCode = delimiter - 48 * Math.floor(delimiter / 48);
-      return String.fromCharCode(96 <= delimiter ? chrCode : delimiter);
+      return String.fromCharCode(delimiter >= 96 ? chrCode : delimiter);
     })
     .join('');
   const escapedDelimiterChars = escapeRegExp(delimiterChars);
@@ -24,7 +24,7 @@ export function buildRegExpFromDelimiters(delimiters) {
  * @returns {boolean} true/false
  * The three different properties which controls this function are moveTag, readOnly and allowDragDrop.
  */
-export function canDrag(params) {
+export function canDrag(params): boolean {
   const { moveTag, readOnly, allowDragDrop } = params;
   return moveTag !== undefined && !readOnly && allowDragDrop;
 }
@@ -35,7 +35,7 @@ export function canDrag(params) {
  * @returns {boolean} true/false
  * The two different properties which controls this function are readOnly and allowDragDrop.
  */
-export function canDrop(params) {
+export function canDrop(params): boolean {
   const { readOnly, allowDragDrop } = params;
   return !readOnly && allowDragDrop;
 }

@@ -1,3 +1,3 @@
-import ReactTags from './ReactTags/ReactTags';
+import { ReactTags, ReactTagsDnD, KEYS } from './ReactTags';
 
-export default ReactTags;
+export { ReactTags, ReactTagsDnD, KEYS };
